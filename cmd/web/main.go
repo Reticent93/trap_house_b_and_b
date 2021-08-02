@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/Reticent93/trap_house_b_and_b/pkg/config"
-	"github.com/Reticent93/trap_house_b_and_b/pkg/handlers"
-	"github.com/Reticent93/trap_house_b_and_b/pkg/render"
+	config2 "github.com/Reticent93/trap_house_b_and_b/internal/config"
+	handlers2 "github.com/Reticent93/trap_house_b_and_b/internal/handlers"
+	render2 "github.com/Reticent93/trap_house_b_and_b/internal/render"
 	"github.com/alexedwards/scs/v2"
 	"log"
 	"net/http"
@@ -12,7 +12,7 @@ import (
 )
 
 var port = ":8080"
-var app config.AppConfig
+var app config2.AppConfig
 var session *scs.SessionManager
 
 func main() {
@@ -28,17 +28,17 @@ func main() {
 
 	app.Session = session
 
-	tc, err := render.CreateTemplateCache()
+	tc, err := render2.CreateTemplateCache()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	app.TemplateCache = tc
 	app.UseCache = false
-	repo := handlers.NewRepo(&app)
-	handlers.NewHandlers(repo)
+	repo := handlers2.NewRepo(&app)
+	handlers2.NewHandlers(repo)
 
-	render.NewTemplates(&app)
+	render2.NewTemplates(&app)
 
 	fmt.Println(fmt.Sprintf("Starting on port %s", port))
 

@@ -2,75 +2,73 @@ package render
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"github.com/Reticent93/trap_house_b_and_b/pkg/config"
-	"github.com/Reticent93/trap_house_b_and_b/pkg/models"
+	config2 "github.com/Reticent93/trap_house_b_and_b/internal/config"
+	models2 "github.com/Reticent93/trap_house_b_and_b/internal/models"
+	"github.com/justinas/nosurf"
 	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
 )
 
- var functions = template.FuncMap{
-	
-}
+var functions = template.FuncMap{}
 
- var app *config.AppConfig
- 
- 
- //NewTemplates sets the config for the template package
-func NewTemplates(a *config.AppConfig)  {
+var app *config2.AppConfig
+
+//NewTemplates sets the config for the template package
+func NewTemplates(a *config2.AppConfig) {
 	app = a
 }
 
-func AddDefaultData(td *models.TemplateData) *models.TemplateData  {
+func AddDefaultData(td *models2.TemplateData, r *http.Request) *models2.TemplateData {
+	td.CSRFToken = nosurf.Token(r)
 	return td
 }
 
- // RenderTemplate renders templates using html/template
-func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData)  {
+// RenderTemplate renders templates using html/template
+func RenderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, td *models2.TemplateData) {
 	var tc map[string]*template.Template
-	
+
 	if app.UseCache {
-	tc = app.TemplateCache
-	
-	}else {
+		//get template cache from the app config
+		tc = app.TemplateCache
+
+	} else {
+		//this is just used for testing, so that we rebuild
+		//the cache on every request
 		tc, _ = CreateTemplateCache()
 	}
-	
 
 	t, ok := tc[tmpl]
 	if !ok {
-		log.Fatal("Could not get template from template")
+		errors.New("could not get the template from the cache")
 	}
-	
+
 	buf := new(bytes.Buffer)
-	
-	td = AddDefaultData(td)
-	
+
+	td = AddDefaultData(td, r)
+
 	_ = t.Execute(buf, td)
-	
+
 	_, err := buf.WriteTo(w)
 	if err != nil {
+		log.Println(err)
 		fmt.Println("Error", err)
+
 	}
-	
-	parsedTemplate, _ := template.ParseFiles("./templates/" + tmpl)
-	err = parsedTemplate.Execute(w, nil)
-	if err != nil {
-		fmt.Println("error parsing template:" ,err)
-		return
-	}
+
 }
 
 func CreateTemplateCache() (map[string]*template.Template, error) {
 	myCache := map[string]*template.Template{}
-	
+
 	pages, err := filepath.Glob("./templates/*.page.tmpl")
 	if err != nil {
 		return myCache, err
 	}
-	
+
 	for _, page := range pages {
 		name := filepath.Base(page)
 
